@@ -79,47 +79,57 @@ function urdme_inline_convert(umod,outputfile,varargin)
     %%%%%%%%%%%%%%%%
     print_header(fh);
     for rxn_num=1:umod.M1
-        print_rxn_fn(fh,rxn_num);
+        print_rxn_fn(umod,fh,rxn_num);
     end
-    print_footer(fh);
+    print_footer(fh,Mreactions);
     if(fh>1)
         fclose(fh);
     end
+ end%function urdme_inline_convert
+   
     %%%%%%%%%%%%%%%%
-    function print_header(fh)
-        fprintf(fh,'#include <stdlib.h>\n#include <stdio.h>\n#include "propensities.h"\n\n');
-    end%print_header()
-    function print_rxn_fn(fh,rxn_n)
-        fprintf(fh,'double rFun%i(const int *x, double t, const double vol, const double *data, int sd){\n',rxn_n);
-        sdv=find(umod.S(:,rxn_n));
-        for sdn=1:length(sdv) %disabled subdomains
-            fprintf(fh,'if(sd==%i){return 0.0;}\n',sdv(sdn));
-        end
-        if(isfield(umod,'parameters'))
-            fprintf(fh,'return parameters[%i]',rxn_n-1);
-        else
-            fprintf(fh,'return (%e)',max(umod.K(:,rxn_n)));
-        end
-        if(umod.K(1,rxn_n)~=0)%bi-molecular
-            if(umod.I(1,rxn_n)==umod.I(2,rxn_n)) %homo
-            fprintf(fh,'/vol*x[%i]*(x[%i]-1)/2',umod.I(1,rxn_n)-1,umod.I(2,rxn_n)-1);
-            else %hetro
-            fprintf(fh,'/vol*x[%i]*x[%i]',umod.I(1,rxn_n)-1,umod.I(2,rxn_n)-1);
-            end
-        elseif(umod.K(2,rxn_n)~=0)%mono-molecular
-            fprintf(fh,'*x[%i]',umod.I(3,rxn_n)-1);
-        else %zero-order
-            fprintf(fh,'*vol');
-        end
-        fprintf(fh,';\n}\n');
-    end%print_rxn_fn
-    function print_footer(fh)
-        fprintf(fh,'PropensityFun*ALLOC_propensities(void){\n');
-        fprintf(fh,'PropensityFun*ptr = (PropensityFun*)malloc(sizeof(PropensityFun)*%i);\n',Mreactions);
-        for r=0:Mreactions-1
-            fprintf(fh,'ptr[%i]=rFun%i;\n',r,r+1);
-        end
-        fprintf(fh,'return ptr;\n}\n');
-        fprintf(fh,'void FREE_propensities(PropensityFun*ptr){free(ptr);}\n');
-    end%print_footer
-end%function urdme_inline_convert
+function print_header(fh)
+     fprintf(fh,'#include <stdlib.h>\n#include <stdio.h>\n#include "propensities.h"\n\n');
+end%print_header()
+
+function print_rxn_fn(umod,fh,rxn_n)
+fprintf(fh,'double rFun%i(const int *x, double t, const double vol, const double *data, int sd){\n',rxn_n);
+sdv=find(umod.S(:,rxn_n));
+
+for sdn=1:length(sdv) %disabled subdomains
+    fprintf(fh,'if(sd==%i){return 0.0;}\n',sdv(sdn));
+end
+
+if(isfield(umod,'parameters'))
+    fprintf(fh,'return parameters[%i]',rxn_n-1);
+else
+    fprintf(fh,'return (%e)',max(umod.K(:,rxn_n)));
+end
+
+if(umod.K(1,rxn_n)~=0)%bi-molecular
+    if(umod.I(1,rxn_n)==umod.I(2,rxn_n)) %homo
+        fprintf(fh,'/vol*x[%i]*(x[%i]-1)/2',umod.I(1,rxn_n)-1,umod.I(2,rxn_n)-1);
+    else %hetro
+        fprintf(fh,'/vol*x[%i]*x[%i]',umod.I(1,rxn_n)-1,umod.I(2,rxn_n)-1);
+    end
+elseif(umod.K(2,rxn_n)~=0)%mono-molecular
+    fprintf(fh,'*x[%i]',umod.I(3,rxn_n)-1);
+else %zero-order
+    fprintf(fh,'*vol');
+end
+fprintf(fh,';\n}\n');
+end%print_rxn_fn
+
+function print_footer(fh,Mreactions)
+
+fprintf(fh,'PropensityFun*ALLOC_propensities(void){\n');
+fprintf(fh,'PropensityFun*ptr = (PropensityFun*)malloc(sizeof(PropensityFun)*%i);\n',Mreactions);
+
+for r=0:Mreactions-1
+    fprintf(fh,'ptr[%i]=rFun%i;\n',r,r+1);
+end
+
+fprintf(fh,'return ptr;\n}\n');
+fprintf(fh,'void FREE_propensities(PropensityFun*ptr){free(ptr);}\n');
+
+end%print_footer
