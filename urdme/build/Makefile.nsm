@@ -8,7 +8,9 @@ endif
 URDME=$(URDME_ROOT)
 LIB = $(URDME)/lib
 BIN = $(URDME)/bin
-INCLUDE = $(URDME)/include
+
+HDF5=$(URDME)/lib/hdf5-1.8.11/hdf5
+INCLUDE = -I$(URDME)/include -I$(HDF5)/include
 SRC = $(URDME)/src
 
 ###########################################################################
@@ -43,12 +45,13 @@ endif
 CC	   = gcc
 LINKER = gcc 
 
-CFLAGS = -c $(SET_ARCH) -O3 -std=gnu99 $(MEMOPTS) -Wall -Wlong-long -Wformat -Wpointer-arith -I$(MATLAB_LIB) -I$(MATLAB_INC) -I$(INCLUDE) $(DMAT) $(DSPARSE)
+CFLAGS = -m64 -c $(SET_ARCH) -O3 -std=gnu99 $(MEMOPTS) -Wall -Wlong-long -Wformat -Wpointer-arith -I$(MATLAB_LIB) -I$(MATLAB_INC) $(INCLUDE) $(DMAT) $(DSPARSE)
 
+LFLAGS_BASE= -l hdf5 -l hdf5_hl -L$(HDF5)/lib
 ifeq ($(MATLAB_LIB),)
-LFLAGS = -lm  
+LFLAGS = $(LFLAGS_BASE) -lm
 else
-LFLAGS = $(LMAT) $(MATLAB_LIB) -lm  
+LFLAGS = $(LFLAGS_BASE) $(LMAT) $(MATLAB_LIB) -lm
 endif
 
 ###########################################################################
@@ -81,7 +84,7 @@ testmakefile:
 	-echo $(URDME)
 
 $(OUT)$(URDME_MODEL).nsm: $(OUT) $(DEPS)
-	$(LINKER) -o $(OUT)$(URDME_MODEL).nsm $(DEPS) $(LFLAGS)
+	$(LINKER) $(LFLAGS) -o $(OUT)$(URDME_MODEL).nsm $(DEPS) 
 
 $(OUT):
 	-mkdir -p $(OUT)
