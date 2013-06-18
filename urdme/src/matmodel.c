@@ -300,15 +300,19 @@ int dump_results(urdme_model* model, char *filename, char *type){
 	
 	int Ndofs,tlen,nsol,i,j;
 	int *U;
+    U = model->U[0];
 
-	MATFile *output;
-	
-	Ndofs = model->Ncells*model->Mspecies;
+    
+    Ndofs = model->Ncells*model->Mspecies;
 	tlen  = model->tlen;
 	nsol  = model->nsol;
+    
 
+#ifdef OUTPUT_MAT
+    
+    
+	MATFile *output;
     mxArray *Uout; 
-	U = model->U[0];
 
 	
 #ifndef URDME_OUTPUT_SPARSE
@@ -388,7 +392,6 @@ int dump_results(urdme_model* model, char *filename, char *type){
 		return(-1);
 	}
 	
-#ifdef OUTPUT_MAT
 #ifndef URDME_OUTPUT_SPARSE
 	matPutVariable(output,"U",Uout);
 	matPutVariable(output,"tspan",Tspanout);
@@ -420,7 +423,7 @@ int dump_results(urdme_model* model, char *filename, char *type){
     
     hid_t h5_output_file,h5_dataset,dataspace;
     herr_t status;
-    h5_output_file = H5Fcreate("testh5.h5",H5F_ACC_TRUNC, H5P_DEFAULT,H5P_DEFAULT);
+    h5_output_file = H5Fcreate(filename,H5F_ACC_TRUNC, H5P_DEFAULT,H5P_DEFAULT);
     if (h5_output_file == NULL){
         printf("Failed to write U matrix HDF5 file.");
         exit(-1);
