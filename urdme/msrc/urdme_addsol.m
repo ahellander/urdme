@@ -25,8 +25,21 @@ if nargin < 3
     verbose = 0;
 end
 
-data=load(filename);
-
+try
+    % Read from .mat
+    data=load(filename);
+catch err
+    try
+        % Read from hdf5 file.  
+        data.U =h5read(filename,'/U');
+        dims = size(data.U);
+        data.U = reshape(data.U,dims(2),dims(1));
+        data.tspan = h5read(filename,'/tspan');
+        data.tspan = data.tspan';
+    catch
+        rethrow(err)
+    end
+end
 % Add trajectory to model. In addition to adding the concentation data
 % to the Comsol data structure, we also save the raw copy numbers in the
 % struct as they are frequently needed by postprocessing routines. 
