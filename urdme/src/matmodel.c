@@ -298,7 +298,7 @@ int destroy_model(urdme_model *model)
  */
 int dump_results(urdme_model* model, char *filename, char *type){
 	
-	int Ndofs,tlen,nsol,i,j;
+	int Ndofs,tlen,nsol;
 	int *U;
     U = model->U[0];
 
@@ -421,7 +421,7 @@ int dump_results(urdme_model* model, char *filename, char *type){
 #elif defined(OUTPUT_HDF5)
     /* Write the result as a HDF5 dataset/file */
     
-    hid_t h5_output_file,h5_dataset,dataspace;
+    hid_t h5_output_file;
     herr_t status;
     h5_output_file = H5Fcreate(filename,H5F_ACC_TRUNC, H5P_DEFAULT,H5P_DEFAULT);
     if (h5_output_file == NULL){
