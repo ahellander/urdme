@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         perror("Fatal error. Failed to load model file.\n");
         return -2;
     }
-	
+    
 	/* Check model file for optional report level and seed. */ 
 	MATFile *input_file;
 	input_file = matOpen(infile,"r"); 

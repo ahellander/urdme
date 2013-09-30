@@ -225,12 +225,16 @@ The output is a matrix U (Ndofs X length(tspan)).
 	   re < Mreactions && rand > cum; 
 	   re++, cum += rrate[subvol*Mreactions+re]);
 
+        if (re >= Mreactions){
+            printf("SHIT %i %i %i\n",re,subvol,sd[subvol]);
+            re--;
+        }
       /* b) Update the state of the subvolume subvol and sdrate[subvol]. */
       for (i = jcN[re]; i < jcN[re+1]; i++) {
-	xx[subvol*Mspecies+irN[i]] += prN[i];
-	if (xx[subvol*Mspecies+irN[i]] < 0) errcode = 1;
-	sdrate[subvol] += Ddiag[subvol*Mspecies+irN[i]]*prN[i];
-      }
+          xx[subvol*Mspecies+irN[i]] += prN[i];
+          if (xx[subvol*Mspecies+irN[i]] < 0) errcode = 1;
+            sdrate[subvol] += Ddiag[subvol*Mspecies+irN[i]]*prN[i];
+       }
 
       /* c) Recalculate srrate[subvol] using dependency graph. */
       for (i = jcG[Mspecies+re], rdelta = 0.0; i < jcG[Mspecies+re+1]; i++) {
