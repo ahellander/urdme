@@ -86,6 +86,8 @@ mxArray* matGetNextVariable(MATFile*matfile);
 //----------------------
 mxArray* matGetVariable(MATFile*matfile,const char* var_name);
 //----------------------
+int mxIsSparse(mxArray* var);
+//----------------------
 size_t* mxGetIr(mxArray* var);
 //----------------------
 size_t* mxGetJc(mxArray* var);

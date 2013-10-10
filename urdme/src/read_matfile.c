@@ -535,6 +535,14 @@ size_t* mxGetIr(mxArray* var){
 size_t* mxGetJc(mxArray* var){
     return var->jc;
 }
+
+int mxIsSparse(mxArray* var){
+    if (var->array_class == 5)
+        return 1;
+    else
+        return 0;
+}
+
 //----------------------
 //unsigned int* mxGetJc(mxArray* var){
 //    return var->jc;
