@@ -1,9 +1,14 @@
 /* A. Hellander and B. Drawert. */
 #include <string.h>
 #include "matmodel.h"
-
+//#define OUTPUT_MAT
+#define OUTPUT_HDF5
+#ifdef OUTPUT_HDF5
+#include "hdf5.h"
+#include "hdf5_hl.h"
+#endif
 // This is necessary as 'parameters' is extern in "propensities.h" (where it is declared).
-//      It must be defined (set to a value) in one and only one '.o' file
+// It must be defined (set to a value) in one and only one '.o' file
 #include "propensities.h"
 double *parameters = NULL;
 
@@ -312,69 +317,58 @@ int destroy_model(urdme_model *model)
 	return 0;
 }
 
-/* 
-   Print trajectory attached to urdme_model to a .mat file.
-   
-   The output trajectory will be stored in a variable called "U", that can
-   subsequently be loaded into the Matlab workspace for postprocessing. 
- 
+/*
+ Print the result trajectory that is attached to urdme_model to a mat/hdf5 file.
+ The output trajectory will be stored in a variable/dataset named "U".
  */
-
 int dump_results(urdme_model* model, char *filename, char *type){
-	
-	int Ndofs,tlen,nsol,i,j;
-	int *U;
-
-	MATFile *output;
-	
-	Ndofs = model->Ncells*model->Mspecies;
-	tlen  = model->tlen;
-	nsol  = model->nsol;
-
-    mxArray *Uout; 
-	U = model->U[0];
-
-	
+    
+    int Ndofs,tlen,nsol,i,j;
+    int *U;
+    U = model->U[0];
+    
+    
+    Ndofs = model->Ncells*model->Mspecies;
+    tlen = model->tlen;
+    nsol = model->nsol;
+    
+    
+#ifdef OUTPUT_MAT
+    
+    
+    MATFile *output;
+    mxArray *Uout;
+    
+    
 #ifndef URDME_OUTPUT_SPARSE
-	Uout = mxCreateDoubleMatrix(Ndofs,tlen,mxREAL);
-	double *data;
-	data = mxGetPr(Uout);
-	/* Dense output data */
-	for (i=0;i<Ndofs*model->tlen;i++){
-		data[i]=(double) U[i];
-	}
-    /* 
-       
-       If sparse output, we write the matrix on dictionary of keys (DOK) format.
-       The application using this matrix will then have to convert to whatever format needed. 
-       the keys are (iU,jU) and values sU. To instantiate a sparse matrix in Matlab, load the output file and do
-       
-       >> U = sparse(iU,jU,sU,mU,nU);
-     
+    Uout = mxCreateDoubleMatrix(Ndofs,tlen,mxREAL);
+    double *data;
+    data = mxGetPr(Uout);
+    /* Dense output data */
+    for (i=0;i<Ndofs*model->tlen;i++){
+        data[i]=(double) U[i];
+    }
+    
+#else
+    /*
+     If sparse output, we write the matrix on dictionary of keys (DOK) format.
+     The application using this matrix will then have to convert to whatever format needed.
+     the keys are (iU,jU) and values sU. To instantiate a sparse matrix in Matlab, load the output file and do
+     >> U = sparse(iU,jU,sU,mU,nU);
      */
-#else	
-	/* Count number of non-zeros */
-	int nnz = 0,nnz_col;
-	for (i=0; i<Ndofs*tlen; i++) {
-		if (U[i]>0.0)
-			nnz++;
-	}
-	
-	/*Uout = mxCreateSparse(Ndofs,tlen,nnz,mxREAL);
-	if (Uout == NULL) {
-		printf("Fatal error. Failed to create output matrix.");
-		exit(-1);
-	}
-	
-	size_t *jc = mxGetJc(Uout);
-	size_t *ir = mxGetIr(Uout);
-	double *pr = mxGetPr(Uout);*/
+    
+    /* Count number of non-zeros */
+    int nnz = 0,nnz_col;
+    for (i=0; i<Ndofs*tlen; i++) {
+        if (U[i]>0.0)
+            nnz++;
+    }
     
     mxArray* iU = mxCreateDoubleMatrix(nnz,1,mxREAL);
     mxArray* jU = mxCreateDoubleMatrix(nnz,1,mxREAL);
     mxArray* sU = mxCreateDoubleMatrix(nnz,1,mxREAL);
     
-    // Dimesions of the matrix, mU (row) and nU(col). In house matlib does not have mxCreateScalar.
+    // Dimesions of the matrix, mU (row) and nU(col). In-house matlib does not have mxCreateScalar.
     mxArray* mU = mxCreateDoubleMatrix(1,1,mxREAL);
     double *dim;
     dim = mxGetPr(mU);
@@ -384,75 +378,61 @@ int dump_results(urdme_model* model, char *filename, char *type){
     dim[0] = (double)tlen;
     
     double *iUdata = mxGetPr(iU);
-    double *jUdata =  mxGetPr(jU);
+    double *jUdata = mxGetPr(jU);
     double *sUdata = mxGetPr(sU);
     
     nnz = 0;
     for (j=0; j<tlen; j++){
         for (i=0;i<Ndofs;i++){
             if (U[j*Ndofs+i]>0.0){
-                 /* NOTE THE +1 HERE, MATLAB SPECIFIC INDEXING. */
-                iUdata[nnz] = i+1;
-                jUdata[nnz] = j+1;
+                /* NOTE THE +1 HERE, MATLAB SPECIFIC INDEXING. */
+                iUdata[nnz] = (double)(i+1);
+                jUdata[nnz] = (double)(j+1);
                 sUdata[nnz] = (double)U[j*Ndofs+i];
                 nnz++;
             }
         }
     }
-	
-	/*nnz  = 0; jc[0]=0;
-	for (j=0; j<tlen; j++) {
-		for (i=0;i<Ndofs;i++) {
-			
-			if (U[j*Ndofs+i]>0) {
-				pr[nnz] = (double)U[j*Ndofs+i];
-				ir[nnz] = i;
-				nnz++;
-				nnz_col++;
-			}
-			
-		}
-		jc[j+1]=nnz;
-	}*/
+    
 #endif
-	
-	
-    mxArray *Tspanout; 
-	Tspanout = mxCreateDoubleMatrix(1, model->tlen,mxREAL);
-	double *tdata;
-	tdata = mxGetPr(Tspanout);
-		
-	for(i=0;i<model->tlen;i++)
-		tdata[i]=model->tspan[i];
-	
-	
-#ifdef URDME_LIBMAT 
-	output = matOpen(filename,"w");  // using built in URDME mat read/write
+    
+    
+    mxArray *Tspanout;
+    Tspanout = mxCreateDoubleMatrix(1, model->tlen,mxREAL);
+    double *tdata;
+    tdata = mxGetPr(Tspanout);
+    
+    for(i=0;i<model->tlen;i++)
+        tdata[i]=model->tspan[i];
+    
+    
+#ifdef URDME_LIBMAT
+    output = matOpen(filename,"w"); // using built in URDME mat read/write
 #else
-	output = matOpen(filename,"w7.3"); // Possibly large files 
+    output = matOpen(filename,"w7.3"); // Possibly large files
 #endif
-
+    
     if (output == NULL){
-		printf("Error: Could not write to output file: %s\n",filename);
-		return(-1);
-	}
-	
+        printf("Error: Could not write to output file: %s\n",filename);
+        return(-1);
+    }
+    
 #ifndef URDME_OUTPUT_SPARSE
-	matPutVariable(output,"U",Uout);
-	matPutVariable(output,"tspan",Tspanout);
+    matPutVariable(output,"U",Uout);
+    matPutVariable(output,"tspan",Tspanout);
 #else
     matPutVariable(output,"iU",iU);
     matPutVariable(output,"jU",jU);
     matPutVariable(output,"sU",sU);
     matPutVariable(output,"mU",mU);
     matPutVariable(output,"nU",nU);
-	matPutVariable(output,"tspan",Tspanout);
+    matPutVariable(output,"tspan",Tspanout);
 #endif
     
-	matClose(output);
+    matClose(output);
     
 #ifndef URDME_OUTPUT_SPARSE
-	mxDestroyArray(Uout);
+    mxDestroyArray(Uout);
     mxDestroyArray(Tspanout);
 #else
     mxDestroyArray(iU);
@@ -463,8 +443,47 @@ int dump_results(urdme_model* model, char *filename, char *type){
     mxDestroyArray(nU);
 #endif
     
-	
-	return 1;
+#elif defined(OUTPUT_HDF5)
+    /* Write the result as a HDF5 dataset/file */
+    
+    hid_t h5_output_file,h5_dataset,dataspace;
+    herr_t status;
+    h5_output_file = H5Fcreate(filename,H5F_ACC_TRUNC, H5P_DEFAULT,H5P_DEFAULT);
+    if (h5_output_file == NULL){
+        printf("Failed to write U matrix HDF5 file.");
+        exit(-1);
+    }
+    
+    hsize_t dims[2]; /* dataset dimensions */
+    dims[0] = Ndofs;
+    dims[1] = tlen;
+    
+    // Write the result matrix to the file
+    status = H5LTmake_dataset(h5_output_file,"/U",2,dims,H5T_NATIVE_INT,U);
+    if (status != 0){
+        printf("Failed to write U matrix HDF5 file.");
+        exit(-1);
+    }
+    
+    // Write tspan to the file
+    dims[0] = 1;
+    dims[1] = tlen;
+    status = H5LTmake_dataset(h5_output_file,"/tspan",2,dims,H5T_NATIVE_DOUBLE,model->tspan);
+    if (status != 0){
+        printf("Failed to write tspan vector HDF5 file.");
+        exit(-1);
+    }
+    
+    status = H5Fclose(h5_output_file);
+    if (status != 0){
+        printf("Failed to close output HDF5 file.");
+        exit(-1);
+    }
+    
+#endif
+    
+    return 1;
+    
 }
 
 /*
