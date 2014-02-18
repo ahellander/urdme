@@ -42,8 +42,8 @@ $(error URDME_LIBMAT does not support sparse output, please use Matlab libraries
 endif
 endif
  
-CC	   = gcc
-LINKER = gcc 
+CC	   = mpicc
+LINKER = mpicc
 
 CFLAGS = -gdwarf-2 -m64 -c $(SET_ARCH) -O3 -std=gnu99 $(MEMOPTS) -Wall -Wlong-long -Wformat -Wpointer-arith -I$(MATLAB_INC) $(INCLUDE) $(DMAT) $(DSPARSE)
 

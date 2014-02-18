@@ -43,8 +43,8 @@ endif
 DEBUG = -gdwarf-2
 
 INCLUDE = -I$(URDME_ROOT)/include -I$(SOLVER_ROOT)/include -I$(MATLAB_LIB) -I$(MATLAB_INC)
-CC	=gcc
-LINKER = gcc 
+CC	= mpicc
+LINKER = mpicc
 CFLAGS = -c $(SET_ARCHS) $(DEBUG) -msse2 -O3 -DMEXP=19937 -Wall -Wlong-long -Wformat -Wpointer-arith $(INCLUDE) $(DMAT) $(DSPARSE)
 LFLAGS = -lm $(LMAT) $(DEBUG) $(MATLAB_LIB)
 ###########################################################################
